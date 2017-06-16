@@ -1,5 +1,13 @@
 This is a script to test how quickly regions can be fetched from a cooler file
 
+### Prerequisites
+
+1. Install [goofys](https://github.com/kahing/goofys)
+
+2. Mount the bucket:
+
+goofys pkerp:public data-aws/
+
 ### Getting the data
 
 ```
@@ -23,6 +31,12 @@ generate 100 tile ids.
 This script will fetch each of the tiles listed in the `tile_list.txt` file generated above.
 
 ```
-/usr/bin/time python scripts/benchmark_tiles.py data/Rao2014-GM12878-MboI-allreps-filtered.100kb.multires.cool data/tile_list.txt
+/usr/bin/time python scripts/benchmark_tiles.py data/Rao2014-GM12878-MboI-allreps-filtered.100kb.multires.cool data/tile_list.txt -t 10
+```
+
+Run the benchmark using AWS S3:
+
+```
+/usr/bin/time python scripts/benchmark_tiles.py data-aws/Rao2014-GM12878-MboI-allreps-filtered.100kb.multires.cool data/tile_list.txt -t 10
 ```
 
