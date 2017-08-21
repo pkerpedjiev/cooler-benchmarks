@@ -5,10 +5,20 @@ import h5py
 import multiprocessing as mp
 import numpy as np
 import sys
+import time
 import argparse
 
 def make_tile(zoomLevel, x_pos, y_pos, cooler_file):
+    t1 = time.time()
+    #print("opening...")
     f = h5py.File(cooler_file, 'r')
+
+    num_values = len(f[str(zoomLevel)]['pixels']['count'])
+    num_chunks = f[str(zoomLevel)]['pixels']['count'].chunks[0]
+    #print(zoomLevel, x_pos, y_pos, num_values, num_chunks, num_values / num_chunks)
+
+
+    t2 = time.time()
     info = cch.get_info(cooler_file)
     divisor = 2 ** zoomLevel
 
@@ -38,13 +48,15 @@ def make_tile(zoomLevel, x_pos, y_pos, cooler_file):
     if len(v):
         out[index] = v
 
+    t3 = time.time()
+    print("fetched: {:.3f}, opened {:.3f}".format(t3 - t2, t2 - t1))
     return out
 
 def func(x):
-    print("fetching:", x[:3])
+    #print("fetching:", x[:3])
     tile = make_tile(x[0], x[1], x[2], x[3])
-    print("fetched:", x[:3])
-    print("tile:", tile)
+    #print("fetched:", x[:3])
+    #print("tile:", tile)
 
 def main():
     parser = argparse.ArgumentParser(description="""
@@ -70,11 +82,12 @@ def main():
         z,x,y = [int(p) for p in line.strip().split()]
         tile_poss += [[z,x,y,args.cooler_file]]
 
-        print(z,x,y)
 
-    pool.map(func, tile_poss)
+        #print(z,x,y)
+
+    for tile_pos in tile_poss:
+        func(tile_pos)
+    #pool.map(func, tile_poss)
 
 if __name__ == '__main__':
     main()
-
-

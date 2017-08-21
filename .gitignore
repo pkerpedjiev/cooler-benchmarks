@@ -3,3 +3,5 @@
 *.swo
 *.swn
 data/Rao2014-GM12878-MboI-allreps-filtered.100kb.multires.cool
+data/
+data-aws/

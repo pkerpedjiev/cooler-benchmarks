@@ -20,7 +20,7 @@ We need to generate a list of tile ids that will be used to test cooler's
 tile fetching performance.
 
 ```
-python scripts/generate_random_tiles.py 7 -n 100 > data/tile_list.txt
+python scripts/generate_random_tiles.py 7 -n 10 > data/tile_list.txt
 ```
 
 In this instance, `7` is the maximum zoom level and `-n 100` indicates that we should
@@ -39,4 +39,3 @@ Run the benchmark using AWS S3:
 ```
 /usr/bin/time python scripts/benchmark_tiles.py data-aws/Rao2014-GM12878-MboI-allreps-filtered.100kb.multires.cool data/tile_list.txt -t 10
 ```
-
