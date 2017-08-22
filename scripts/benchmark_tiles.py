@@ -8,7 +8,28 @@ import sys
 import time
 import argparse
 
-def make_tile(zoomLevel, x_pos, y_pos, cooler_file):
+def make_tiles(zoomLevel, x_pos, y_pos, cooler_file, x_width=1, y_width=1):
+    '''
+    Generate tiles for a given location. This function retrieves tiles for
+    a rectangular region of width x_width and height y_width
+
+    Arguments
+    ---------
+        zoomLevel: int
+            The zoom level to retrieve tiles for (e.g. 0, 1, 2... )
+        x_pos: int
+            The starting x position
+        y_pos: int
+            The starting y position
+        cooler_file: string
+            The filename of the cooler file to get the data from
+        x_width: int 
+            The number of tiles to retrieve along the x dimension
+        y_width: int
+            The number of tiles to retrieve along the y dimension
+    '''
+            
+
     t1 = time.time()
     #print("opening...")
     f = h5py.File(cooler_file, 'r')
@@ -23,30 +44,45 @@ def make_tile(zoomLevel, x_pos, y_pos, cooler_file):
     divisor = 2 ** zoomLevel
 
     start1 = x_pos * info['max_width'] / divisor
-    end1 = (x_pos + 1) * info['max_width'] / divisor
+    end1 = (x_pos + x_width) * info['max_width'] / divisor
     start2 = y_pos * info['max_width'] / divisor
-    end2 = (y_pos + 1) * info['max_width'] / divisor
+    end2 = (y_pos + y_width) * info['max_width'] / divisor
 
     data = cch.get_data(
         f, zoomLevel, start1, end1 - 1, start2, end2 - 1
     )
 
-    df = data[data['genome_start1'] >= start1]
+    #print("x_width:", x_width)
+    #print("y_width:", y_width)
+    # split out the individual tiles
+    for x_offset in range(0, x_width):
+        for y_offset in range(0, y_width):
 
-    binsize = f.attrs[str(zoomLevel)]
-    j = (df['genome_start1'].values - start1) // binsize
-    i = (df['genome_start2'].values - start2) // binsize
+            start1 = (x_pos + x_offset) * info['max_width'] / divisor
+            end1 = (x_pos + 1) * info['max_width'] / divisor
+            start2 = (y_pos + y_offset) * info['max_width'] / divisor
+            end2 = (y_pos + 1) * info['max_width'] / divisor
 
-    if 'balanced' in df:
-        v = np.nan_to_num(df['balanced'].values)
-    else:
-        v = np.nan_to_num(df['count'].values)
+            df = data[data['genome_start1'] >= start1]
+            df = df[df['genome_start1'] <= end1]
 
-    out = np.zeros(65536, dtype=np.float32)  # 256^2
-    index = [int(x) for x in (i * 256) + j]
+            df = df[df['genome_start2'] >= start2]
+            df = df[df['genome_start2'] <= end2]
 
-    if len(v):
-        out[index] = v
+            binsize = f.attrs[str(zoomLevel)]
+            j = (df['genome_start1'].values - start1) // binsize
+            i = (df['genome_start2'].values - start2) // binsize
+
+            if 'balanced' in df:
+                v = np.nan_to_num(df['balanced'].values)
+            else:
+                v = np.nan_to_num(df['count'].values)
+
+            out = np.zeros(65536, dtype=np.float32)  # 256^2
+            index = [int(x) for x in (i * 256) + j]
+
+            if len(v):
+                out[index] = v
 
     t3 = time.time()
     print("fetched: {:.3f}, opened {:.3f}".format(t3 - t2, t2 - t1))
@@ -54,7 +90,7 @@ def make_tile(zoomLevel, x_pos, y_pos, cooler_file):
 
 def func(x):
     #print("fetching:", x[:3])
-    tile = make_tile(x[0], x[1], x[2], x[3])
+    tile = make_tiles(*x)
     #print("fetched:", x[:3])
     #print("tile:", tile)
 
@@ -79,7 +115,22 @@ def main():
 
     if args.combined_tiles:
         for line in open(args.tiles_list, 'r'):
-            print("line:", line)
+            # and extract the z,x,y coordinates
+            zxys = [[int(x) for x in p.split('.')] for p in line.strip().split()]
+
+            minx = min([x[1] for x in zxys])
+            maxx = max([x[1] for x in zxys])
+
+            miny = min([x[2] for x in zxys])
+            maxy = max([x[2] for x in zxys])
+
+            # assume that all requests are for the same zoom level
+            # so we take the zoom level from the first entry
+            z = zxys[0][0]
+
+            print("parts:", zxys)
+            #print("mins:", z, [minx, maxx], [miny, maxy])
+            func([z, minx, miny, args.cooler_file, maxx - minx + 1, maxy - miny + 1])
     else:
         tile = make_tile(0,0,0, args.cooler_file)
 
@@ -87,7 +138,6 @@ def main():
         for line in open(args.tiles_list, 'r'):
             z,x,y = [int(p) for p in line.strip().split()]
             tile_poss += [[z,x,y,args.cooler_file]]
-
 
             #print(z,x,y)
 
