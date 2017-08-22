@@ -33,6 +33,7 @@ def make_tiles(zoomLevel, x_pos, y_pos, cooler_file, x_width=1, y_width=1):
     t1 = time.time()
     #print("opening...")
     f = h5py.File(cooler_file, 'r')
+    print("zoom_level", zoomLevel)
 
     num_values = len(f[str(zoomLevel)]['pixels']['count'])
     num_chunks = f[str(zoomLevel)]['pixels']['count'].chunks[0]
@@ -52,6 +53,8 @@ def make_tiles(zoomLevel, x_pos, y_pos, cooler_file, x_width=1, y_width=1):
         f, zoomLevel, start1, end1 - 1, start2, end2 - 1
     )
 
+    #print("data:", data)
+
     #print("x_width:", x_width)
     #print("y_width:", y_width)
     # split out the individual tiles
@@ -59,9 +62,9 @@ def make_tiles(zoomLevel, x_pos, y_pos, cooler_file, x_width=1, y_width=1):
         for y_offset in range(0, y_width):
 
             start1 = (x_pos + x_offset) * info['max_width'] / divisor
-            end1 = (x_pos + 1) * info['max_width'] / divisor
+            end1 = (x_pos + x_offset+ 1) * info['max_width'] / divisor
             start2 = (y_pos + y_offset) * info['max_width'] / divisor
-            end2 = (y_pos + 1) * info['max_width'] / divisor
+            end2 = (y_pos + y_offset + 1) * info['max_width'] / divisor
 
             df = data[data['genome_start1'] >= start1]
             df = df[df['genome_start1'] <= end1]
@@ -72,6 +75,8 @@ def make_tiles(zoomLevel, x_pos, y_pos, cooler_file, x_width=1, y_width=1):
             binsize = f.attrs[str(zoomLevel)]
             j = (df['genome_start1'].values - start1) // binsize
             i = (df['genome_start2'].values - start2) // binsize
+
+            print("df:", df.size)
 
             if 'balanced' in df:
                 v = np.nan_to_num(df['balanced'].values)
@@ -114,6 +119,7 @@ def main():
     pool = mp.Pool(args.threads)
 
     if args.combined_tiles:
+        params = []
         for line in open(args.tiles_list, 'r'):
             # and extract the z,x,y coordinates
             zxys = [[int(x) for x in p.split('.')] for p in line.strip().split()]
@@ -130,9 +136,12 @@ def main():
 
             print("parts:", zxys)
             #print("mins:", z, [minx, maxx], [miny, maxy])
-            func([z, minx, miny, args.cooler_file, maxx - minx + 1, maxy - miny + 1])
+            #func([z, minx, miny, args.cooler_file, maxx - minx + 1, maxy - miny + 1])
+
+            params += [(z, minx, miny, args.cooler_file, maxx - minx + 1, maxy - miny + 1)]
+        pool.map(func, params)
     else:
-        tile = make_tile(0,0,0, args.cooler_file)
+        tile = make_tiles(0,0,0, args.cooler_file)
 
         tile_poss = []
         for line in open(args.tiles_list, 'r'):
@@ -141,9 +150,11 @@ def main():
 
             #print(z,x,y)
 
+        '''
         for tile_pos in tile_poss:
             func(tile_pos)
-        #pool.map(func, tile_poss)
+        '''
+        pool.map(func, tile_poss)
 
 if __name__ == '__main__':
     main()

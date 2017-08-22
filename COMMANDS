@@ -7,7 +7,8 @@ python scripts/generate_random_tiles.py 14 -n 40 > data/tile_list.txt; /usr/bin/
 python scripts/generate_random_tiles.py 14 -n 40 > data/tile_list.txt; /usr/bin/time python scripts/benchmark_tiles.py data-aws/Rao2014-GM12878-MboI-allreps-filtered.1kb.multires.cool data/tile_list.txt -t 16 
 
 # AWS tiles
-fusermount -u data-aws; goofys --stat-cache-ttl 0 --type-cache-ttl 0 pkerp:public data-aws/; python scripts/generate_random_tiles.py 14 -n 100 > data/tile_list.txt; /usr/bin/time python scripts/benchmark_tiles.py data-aws/Rao2014-GM12878-MboI-allreps-filtered.1kb.multires.cool data/tile_list_real.txt -t 1
+/usr/bin/time python scripts/benchmark_tiles.py data/Rao2014-GM12878-MboI-allreps-filtered.1kb.multires.cool /tmp/tiles_individual.ssv -t 1
+fusermount -u data-aws; goofys --stat-cache-ttl 0 --type-cache-ttl 0 pkerp:public data-aws/; /usr/bin/time python scripts/benchmark_tiles.py data-aws/Rao2014-GM12878-MboI-allreps-filtered.1kb.multires.cool /tmp/tiles_individual.ssv -t 1
 
 
 # 2017-08-22 Combined tiles
