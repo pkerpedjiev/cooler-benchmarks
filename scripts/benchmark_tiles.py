@@ -67,6 +67,8 @@ def main():
     parser.add_argument('cooler_file', help="A multires cooler file to read the tiles from")
     parser.add_argument('tiles_list', help="A list of tiles to retrieve")
     parser.add_argument('-t', '--threads', default=1, help="The number of threads to use", type=int)
+    parser.add_argument('--combined-tiles', default=False, action='store_true')
+
     #parser.add_argument('-o', '--options', default='yo',
     #					 help="Some option", type='str')
     #parser.add_argument('-u', '--useless', action='store_true', 
@@ -75,19 +77,23 @@ def main():
     args = parser.parse_args()
     pool = mp.Pool(args.threads)
 
-    tile = make_tile(0,0,0, args.cooler_file)
+    if args.combined_tiles:
+        for line in open(args.tiles_list, 'r'):
+            print("line:", line)
+    else:
+        tile = make_tile(0,0,0, args.cooler_file)
 
-    tile_poss = []
-    for line in open(args.tiles_list, 'r'):
-        z,x,y = [int(p) for p in line.strip().split()]
-        tile_poss += [[z,x,y,args.cooler_file]]
+        tile_poss = []
+        for line in open(args.tiles_list, 'r'):
+            z,x,y = [int(p) for p in line.strip().split()]
+            tile_poss += [[z,x,y,args.cooler_file]]
 
 
-        #print(z,x,y)
+            #print(z,x,y)
 
-    for tile_pos in tile_poss:
-        func(tile_pos)
-    #pool.map(func, tile_poss)
+        for tile_pos in tile_poss:
+            func(tile_pos)
+        #pool.map(func, tile_poss)
 
 if __name__ == '__main__':
     main()
